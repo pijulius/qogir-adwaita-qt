@@ -60,6 +60,8 @@
 #include <QToolBox>
 #include <QToolButton>
 #include <QWidgetAction>
+#include <QListView>
+#include <QTreeView>
 
 #ifndef M_PI
     #define M_PI 3.14159265358979323846
@@ -111,7 +113,7 @@ public:
     ComboBoxItemDelegate(QAbstractItemView *parent)
         : QItemDelegate(parent)
         , _proxy(parent->itemDelegate())
-        , _itemMargin(Adwaita::Metrics::ItemView_ItemMarginWidth)
+        , _itemMargin(Adwaita::Metrics::List_ItemMarginWidth)
     {}
 
     //* destructor
@@ -133,13 +135,19 @@ public:
     virtual QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
     {
         // get size from either proxy or parent class
-        QSize size(_proxy ?
-                   _proxy.data()->sizeHint(option, index) :
+        QSize size(//_proxy ?
+                   //_proxy.data()->sizeHint(option, index) :
                    QItemDelegate::sizeHint(option, index));
 
         // adjust and return
         if (size.isValid()) {
             size.rheight() += _itemMargin * 2;
+        }
+
+        if (Adwaita::Metrics::List_ItemMaxHeight > 0 && size.height() > Adwaita::Metrics::List_ItemMaxHeight && 
+            size.height() < Adwaita::Metrics::List_ItemMaxHeight + _itemMargin)
+        {
+            size.rheight() = Adwaita::Metrics::List_ItemMaxHeight;
         }
 
         return size;
@@ -231,7 +239,7 @@ Style::Style(ColorVariant variant)
     , _widgetExplorer(new WidgetExplorer(this))
     , _tabBarData(new AdwaitaPrivate::TabBarData(this))
     , _variant(variant)
-    , _dark(variant == AdwaitaDark || variant == AdwaitaHighcontrastInverse)
+    , _dark(variant == AdwaitaDark)
 {
     // Detect if running under KDE, if so set menus, etc, to have translucent background.
     // For GNOME desktop, dont want translucent backgrounds otherwise no menu shadow is drawn.
@@ -350,13 +358,17 @@ void Style::polish(QWidget *widget)
         setTranslucentBackground(widget);
     } else if (qobject_cast<QCommandLinkButton *>(widget)) {
         addEventFilter(widget);
+    } else if (QListView *listView = qobject_cast<QListView *>(widget)) {
+        listView->setItemDelegate(new AdwaitaPrivate::ComboBoxItemDelegate(listView));
+    } else if (QTreeView *treeView = qobject_cast<QTreeView *>(widget)) {
+        treeView->setItemDelegate(new AdwaitaPrivate::ComboBoxItemDelegate(treeView));
     } else if (QComboBox *comboBox = qobject_cast<QComboBox *>(widget)) {
         if (!hasParent(widget, "QWebView")) {
             QAbstractItemView *itemView(comboBox->view());
             if (itemView && itemView->itemDelegate() && itemView->itemDelegate()->inherits("QComboBoxDelegate")) {
                 itemView->setItemDelegate(new AdwaitaPrivate::ComboBoxItemDelegate(itemView));
             }
-            if (comboBox->isEditable()) {
+            /*if (comboBox->isEditable()) {
                 QLineEdit *lineEdit = comboBox->lineEdit();
                 if (lineEdit && !comboBox->isEnabled()) {
                     QPalette pal = lineEdit->palette();
@@ -364,9 +376,10 @@ void Style::polish(QWidget *widget)
                     lineEdit->setPalette(pal);
                     lineEdit->setAutoFillBackground(true);
                 }
-            }
+            }*/
         }
     } else if (widget->inherits("QComboBoxPrivateContainer")) {
+        widget->setContentsMargins(Metrics::Menu_HMargin, Metrics::Menu_VMargin, Metrics::Menu_HMargin, Metrics::Menu_VMargin);
         addEventFilter(widget);
         setTranslucentBackground(widget);
     } else if (widget->inherits("QTipLabel")) {
@@ -379,12 +392,12 @@ void Style::polish(QWidget *widget)
         const int marginWidth = useMarginWidth ? Metrics::LineEdit_MarginWidth : 0;
         lineEdit->setTextMargins(marginWidth, marginHeight, marginWidth, marginHeight);
     } else if (QSpinBox *spinBox = qobject_cast<QSpinBox *>(widget)) {
-        if (!spinBox->isEnabled()) {
+        /*if (!spinBox->isEnabled()) {
             QPalette pal = spinBox->palette();
             pal.setColor(QPalette::Base, Colors::palette(_variant).color(QPalette::Window));
             spinBox->setPalette(pal);
             spinBox->setAutoFillBackground(true);
-        }
+        }*/
     }
 
     // HACK to avoid different text color in unfocused views
@@ -604,11 +617,20 @@ int Style::pixelMetric(PixelMetric metric, const QStyleOption *option, const QWi
     case PM_MenuButtonIndicator:
         return Metrics::MenuButton_IndicatorWidth;
     case PM_MenuVMargin:
-        return 2;
+        return Metrics::Menu_VMargin;
     case PM_MenuHMargin:
-        return _isGNOME ? 0 : 1;
+        return Metrics::Menu_HMargin;//_isGNOME ? 0 : 1;
 
     // toolbars
+    case PM_IconViewIconSize:
+    case PM_LargeIconSize:
+    case PM_ToolBarIconSize:
+        return 24;
+    case PM_ButtonIconSize:
+    case PM_TabBarIconSize:
+    case PM_ListViewIconSize:
+    case PM_SmallIconSize:
+        return 16;
     case PM_ToolBarHandleExtent:
         return Metrics::ToolBar_HandleExtent;
     case PM_ToolBarSeparatorExtent:
@@ -1415,7 +1437,7 @@ bool Style::eventFilterComboBoxContainer(QWidget *widget, QEvent *event)
 
         StyleOptions styleOptions(&painter, rect);
         styleOptions.setColorVariant(_variant);
-        styleOptions.setColor(Colors::frameBackgroundColor(StyleOptions(palette, _variant)));
+        styleOptions.setColor(Colors::menuColor(StyleOptions(palette, _variant)));
         styleOptions.setOutlineColor(Colors::frameOutlineColor(StyleOptions(palette, _variant)));
 
         Adwaita::Renderer::renderMenuFrame(styleOptions, hasAlpha);
@@ -3014,7 +3036,7 @@ QSize Style::menuItemSizeFromContents(const QStyleOption *option, const QSize &c
 
     case QStyleOptionMenuItem::Separator: {
         if (menuItemOption->text.isEmpty() && menuItemOption->icon.isNull()) {
-            return expandSize(QSize(0, 1), Metrics::MenuItem_MarginWidth, 0);
+            return expandSize(QSize(0, Metrics::MenuItem_SeparatorHeight), Metrics::MenuItem_MarginWidth, 0);
         } else {
             // build toolbutton option
             QStyleOptionToolButton toolButtonOption(separatorMenuItemOption(menuItemOption, widget));
@@ -3302,7 +3324,7 @@ bool Style::drawFrameLineEditPrimitive(const QStyleOption *option, QPainter *pai
 
     // make sure there is enough room to render frame
     if (rect.height() < 2 * Metrics::LineEdit_FrameWidth + option->fontMetrics.height()) {
-        QColor background(palette.currentColorGroup() == QPalette::Disabled ? palette.color(QPalette::Window) : palette.color(QPalette::Base));
+        QColor background(palette.color(QPalette::Base)); //palette.currentColorGroup() == QPalette::Disabled ? palette.color(QPalette::Window) : palette.color(QPalette::Base));
 
         painter->setPen(Qt::NoPen);
         painter->setBrush(background);
@@ -3330,7 +3352,7 @@ bool Style::drawFrameLineEditPrimitive(const QStyleOption *option, QPainter *pai
         styleOptions.setAnimationMode(mode);
         styleOptions.setPainter(painter);
         styleOptions.setRect(rect);
-        styleOptions.setColor(palette.currentColorGroup() == QPalette::Disabled ? palette.color(QPalette::Window) : palette.color(QPalette::Base));
+        styleOptions.setColor(palette.color(QPalette::Base)); //palette.currentColorGroup() == QPalette::Disabled ? palette.color(QPalette::Window) : palette.color(QPalette::Base));
         styleOptions.setOutlineColor(Colors::inputOutlineColor(styleOptions));
 
         // render
@@ -3380,7 +3402,7 @@ bool Style::drawFrameMenuPrimitive(const QStyleOption *option, QPainter *painter
     bool hasAlpha(_helper->hasAlphaChannel(widget));
 
     StyleOptions styleOptions(painter, option->rect);
-    styleOptions.setColor(Colors::frameBackgroundColor(StyleOptions(palette, _variant)));
+    styleOptions.setColor(Colors::menuColor(StyleOptions(palette, _variant)));
     styleOptions.setOutlineColor(Colors::frameOutlineColor(StyleOptions(palette, _variant)));
     styleOptions.setColorVariant(_variant);
 
@@ -3500,6 +3522,7 @@ bool Style::drawFrameTabWidgetPrimitive(const QStyleOption *option, QPainter *pa
 bool Style::drawFrameTabBarBasePrimitive(const QStyleOption *option, QPainter *painter, const QWidget *) const
 {
     // tabbar frame used either for 'separate' tabbar, or in 'document mode'
+    return true;
 
     // cast option and check
     const QStyleOptionTabBarBase *tabOption(qstyleoption_cast<const QStyleOptionTabBarBase *>(option));
@@ -3888,7 +3911,7 @@ bool Style::drawPanelMenuPrimitive(const QStyleOption *option, QPainter *painter
     bool hasAlpha(_helper->hasAlphaChannel(widget));
 
     StyleOptions styleOptions(painter, option->rect);
-    styleOptions.setColor(Colors::frameBackgroundColor(StyleOptions(palette, _variant)));
+    styleOptions.setColor(Colors::menuColor(StyleOptions(palette, _variant)));
     styleOptions.setColorVariant(_variant);
     styleOptions.setOutlineColor(Colors::frameOutlineColor(StyleOptions(palette, _variant)));
 
@@ -4410,14 +4433,28 @@ bool Style::drawIndicatorBranchPrimitive(const QStyleOption *option, QPainter *p
     // state
     const State &state(option->state);
     bool reverseLayout(option->direction == Qt::RightToLeft);
+    bool windowActive(state & State_Active);
+    bool enabled(state & State_Enabled);
+    bool selected(state & State_Selected);
+
+    if (selected) {
+        QPalette::ColorGroup colorGroup;
+        if (enabled) {
+            colorGroup = windowActive ? QPalette::Active : QPalette::Inactive;
+        } else {
+            colorGroup = QPalette::Disabled;
+        }
+    
+        QColor color = palette.color(colorGroup, QPalette::Highlight);
+        painter->fillRect(rect, color);
+    }
 
     //draw expander
     int expanderAdjust = 0;
     if (state & State_Children) {
         // state
         bool expanderOpen(state & State_Open);
-        bool enabled(state & State_Enabled);
-        bool mouseOver((state & State_Active) && enabled && (state & State_MouseOver));
+        bool mouseOver(windowActive && enabled && (state & State_MouseOver));
 
         // expander rect
         int expanderSize = qMin(rect.width(), rect.height());
@@ -4437,10 +4474,19 @@ bool Style::drawIndicatorBranchPrimitive(const QStyleOption *option, QPainter *p
 
         // Style options
         StyleOptions styleOptions(option->palette, _variant);
+        QColor color(mouseOver ? Colors::hoverColor(StyleOptions(palette, _variant)) : Colors::arrowOutlineColor(styleOptions));
+
+        if (selected) {
+            color = palette.color(QPalette::HighlightedText);
+
+            if (!mouseOver)
+                color = Colors::transparentize(color, 0.4);
+        }
+
         styleOptions.setColorRole(QPalette::Text);
         styleOptions.setPainter(painter);
         styleOptions.setRect(arrowRect);
-        styleOptions.setColor(mouseOver ? Colors::hoverColor(StyleOptions(palette, _variant)) : Colors::arrowOutlineColor(styleOptions));
+        styleOptions.setColor(color);
 
         // render
         Adwaita::Renderer::renderArrow(styleOptions, orientation);
@@ -4510,7 +4556,11 @@ bool Style::drawPushButtonLabelControl(const QStyleOption *option, QPainter *pai
 
     // color role
     QPalette::ColorRole textRole;
-    if (flat) {
+    if (sunken) {
+        textRole = QPalette::HighlightedText;
+    } else if (!enabled) {
+        textRole = QPalette::PlaceholderText;
+    } else if (flat) {
         if (hasFocus && sunken) {
             textRole = QPalette::ButtonText;
         } else {
@@ -4606,13 +4656,13 @@ bool Style::drawPushButtonLabelControl(const QStyleOption *option, QPainter *pai
 
     // render text
     if (hasText && textRect.isValid()) {
-        if (enabled && !sunken && !mouseOver && !flat) {
+        /*if (enabled && !sunken && !mouseOver && !flat) {
             if (_dark) {
                 drawItemText(painter, textRect.adjusted(0, -1, 0, -1), textFlags, palette, false, buttonOption->text, QPalette::Dark);
             } else {
                 drawItemText(painter, textRect.adjusted(0, 1, 0, 1), textFlags, palette, false, buttonOption->text, QPalette::Light);
             }
-        }
+        }*/
         drawItemText(painter, textRect, textFlags, palette, enabled, buttonOption->text, textRole);
     }
 
@@ -4739,10 +4789,15 @@ bool Style::drawToolButtonLabelControl(const QStyleOption *option, QPainter *pai
     // render text
     if (hasText && textRect.isValid()) {
         QPalette::ColorRole textRole(QPalette::ButtonText);
-        if (flat) {
+        /*if (flat) {
             textRole = (hasFocus && sunken && !mouseOver) ? QPalette::HighlightedText : QPalette::WindowText;
         } else if (hasFocus && !mouseOver) {
             textRole = QPalette::HighlightedText;
+        }*/
+        if (sunken) {
+            textRole = QPalette::HighlightedText;
+        } else if (!enabled) {
+            textRole = QPalette::PlaceholderText;
         }
 
         painter->setFont(toolButtonOption->font);
@@ -4809,6 +4864,11 @@ bool Style::drawComboBoxLabelControl(const QStyleOption *option, QPainter *paint
     }
 
     QPalette::ColorRole textRole = QPalette::ButtonText;
+    if (option->state & (State_On | State_Sunken)) {
+        textRole = QPalette::HighlightedText;
+    } else if (!(option->state & State_Enabled)) {
+        textRole = QPalette::PlaceholderText;
+    }
 
     // change pen color directly
     painter->save();
@@ -4849,7 +4909,7 @@ bool Style::drawComboBoxLabelControl(const QStyleOption *option, QPainter *paint
         if (!cb->currentText.isEmpty() && !cb->editable) {
             proxy()->drawItemText(painter, editRect.adjusted(Metrics::ComboBox_MarginWidth, 0, -1, 0),
                                   visualAlignment(cb->direction, Qt::AlignLeft | Qt::AlignVCenter),
-                                  cb->palette, cb->state & State_Enabled, cb->currentText);
+                                  cb->palette, cb->state & State_Enabled, cb->currentText, textRole);
         }
         painter->restore();
     }
@@ -4891,10 +4951,15 @@ bool Style::drawMenuBarEmptyArea(const QStyleOption *option, QPainter *painter, 
 
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing, false);
-    painter->setBrush(Qt::NoBrush);
-    painter->setPen(Colors::mix(palette.color(QPalette::Window), palette.color(QPalette::Shadow), 0.2));
 
-    painter->drawLine(rect.bottomLeft(), rect.bottomRight());
+    if (_variant == ColorVariant::Adwaita)
+        painter->setBrush(Colors::palette(ColorVariant::AdwaitaDark).color(QPalette::Window));
+    else
+        painter->setBrush(palette.color(QPalette::Window));
+
+    painter->setPen(Qt::NoPen);
+
+    painter->drawRect(rect);
     painter->restore();
 
     return true;
@@ -4918,23 +4983,28 @@ bool Style::drawMenuBarItemControl(const QStyleOption *option, QPainter *painter
     bool enabled(state & State_Enabled);
     bool sunken(enabled && (state & State_Sunken));
     bool useStrongFocus(Adwaita::Config::MenuItemDrawStrongFocus);
+    bool darkMenubar(_variant == ColorVariant::Adwaita);
 
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing, false);
 
-    painter->setBrush(palette.window().color());
+    if (darkMenubar)
+        painter->setBrush(Colors::palette(ColorVariant::AdwaitaDark).color(QPalette::Window));
+    else
+        painter->setBrush(palette.color(QPalette::Window));
+
     painter->setPen(Qt::NoPen);
     painter->drawRect(rect);
 
-    painter->setBrush(Qt::NoBrush);
+    /*painter->setBrush(Qt::NoBrush);
     painter->setPen(Colors::mix(palette.color(QPalette::Window), palette.color(QPalette::Shadow), 0.2));
 
-    painter->drawLine(rect.bottomLeft(), rect.bottomRight());
+    painter->drawLine(rect.bottomLeft(), rect.bottomRight());*/
     painter->restore();
 
     // render hover and focus
     if (useStrongFocus && sunken) {
-        StyleOptions styleOptions(painter, QRect(rect.left(), rect.bottom() - 2, rect.width(), 3));
+        StyleOptions styleOptions(painter, QRect(rect.left(), rect.bottom() - 1, rect.width(), 2));
         styleOptions.setColorVariant(_variant);
         styleOptions.setOutlineColor(Colors::focusColor(StyleOptions(palette, _variant)));
         styleOptions.setColor(palette.color(QPalette::Highlight));
@@ -4946,7 +5016,10 @@ bool Style::drawMenuBarItemControl(const QStyleOption *option, QPainter *painter
     QRect textRect = option->fontMetrics.boundingRect(rect, textFlags, menuItemOption->text);
 
     // render text
-    const QPalette::ColorRole role = (useStrongFocus && sunken) ? QPalette::Link : QPalette::WindowText;
+    const QPalette::ColorRole role = 
+        (darkMenubar ?
+            (useStrongFocus && sunken) ? QPalette::HighlightedText : QPalette::ToolTipText :
+            (useStrongFocus && sunken) ? QPalette::BrightText : QPalette::WindowText );
     drawItemText(painter, textRect, textFlags, palette, enabled, menuItemOption->text, role);
 
     return true;
@@ -4969,7 +5042,7 @@ bool Style::drawMenuItemControl(const QStyleOption *option, QPainter *painter, c
     const QPalette &palette(option->palette);
 
     // leave room for the menu border
-    rect.adjust(1, 0, -1, 0);
+    //rect.adjust(1, 0, -1, 0);
 
     // deal with separators
     if (menuItemOption->menuItemType == QStyleOptionMenuItem::Separator) {
@@ -5004,9 +5077,11 @@ bool Style::drawMenuItemControl(const QStyleOption *option, QPainter *painter, c
     bool sunken(enabled && (state & (State_On | State_Sunken)));
     bool reverseLayout(option->direction == Qt::RightToLeft);
     bool useStrongFocus(Adwaita::Config::MenuItemDrawStrongFocus);
+    QColor textColor = palette.color(QPalette::Text);
 
     // render hover and focus
     if (useStrongFocus && (selected || sunken)) {
+        textColor = palette.color(QPalette::HighlightedText);
         StyleOptions styleOptions(painter, rect);
         styleOptions.setColor(Colors::selectedMenuColor(StyleOptions(palette, _variant)));
         styleOptions.setColorVariant(_variant);
@@ -5039,7 +5114,9 @@ bool Style::drawMenuItemControl(const QStyleOption *option, QPainter *painter, c
     styleOptions.setCheckboxState(checkState);
     styleOptions.setInMenu(true);
 
-    const QColor &outline(palette.windowText().color());
+    const QColor acceleratorColor = Colors::transparentize(textColor, 0.55);
+
+    const QColor &outline(Colors::indicatorOutlineColor(styleOptions));
     const QColor &indicatorBackground(Colors::indicatorBackgroundColor(styleOptions));
     // render checkbox indicator
     if (menuItemOption->checkType == QStyleOptionMenuItem::NonExclusive) {
@@ -5068,6 +5145,8 @@ bool Style::drawMenuItemControl(const QStyleOption *option, QPainter *painter, c
         styleOptions.setActive(enabled && windowActive);
 
         QColor tickColor = Colors::checkBoxIndicatorColor(styleOptions);
+        if (useStrongFocus && (selected || sunken))
+            tickColor = textColor;
         Adwaita::Renderer::renderCheckBox(styleOptions, tickColor);
     } else if (menuItemOption->checkType == QStyleOptionMenuItem::Exclusive) {
         checkBoxRect = visualRect(option, checkBoxRect);
@@ -5094,6 +5173,8 @@ bool Style::drawMenuItemControl(const QStyleOption *option, QPainter *painter, c
         styleOptions.setRadioButtonState(active ? RadioOn : RadioOff);
 
         QColor tickColor = Colors::checkBoxIndicatorColor(styleOptions);
+        if (useStrongFocus && (selected || sunken))
+            tickColor = textColor;
         Adwaita::Renderer::renderRadioButton(styleOptions, tickColor);
     }
 
@@ -5130,8 +5211,6 @@ bool Style::drawMenuItemControl(const QStyleOption *option, QPainter *painter, c
         painter->drawPixmap(iconRect, icon);
     }
 
-    const QColor acceleratorColor = Colors::transparentize(palette.color(QPalette::Active, QPalette::WindowText), 0.55);
-
     // arrow
     QRect arrowRect(contentsRect.right() - Metrics::MenuButton_IndicatorWidth + 1, contentsRect.top() + (contentsRect.height() - Metrics::MenuButton_IndicatorWidth) / 2, Metrics::MenuButton_IndicatorWidth, Metrics::MenuButton_IndicatorWidth);
 
@@ -5144,7 +5223,7 @@ bool Style::drawMenuItemControl(const QStyleOption *option, QPainter *painter, c
 
         styleOptions.setPainter(painter);
         styleOptions.setRect(arrowRect);
-        styleOptions.setColor(acceleratorColor);
+        styleOptions.setColor(textColor);
         styleOptions.setColorVariant(_variant);
 
         // render
@@ -5167,6 +5246,7 @@ bool Style::drawMenuItemControl(const QStyleOption *option, QPainter *painter, c
         painter->setFont(menuItemOption->font);
 
         // locate accelerator and render
+        QPalette copy(palette);
         int tabPosition(text.indexOf(QLatin1Char('\t')));
         if (tabPosition >= 0) {
             int textFlags(Qt::AlignVCenter | Qt::AlignRight);
@@ -5181,7 +5261,8 @@ bool Style::drawMenuItemControl(const QStyleOption *option, QPainter *painter, c
         // render text
         int textFlags(Qt::AlignVCenter | (reverseLayout ? Qt::AlignRight : Qt::AlignLeft) | _mnemonics->textFlags());
         textRect = option->fontMetrics.boundingRect(textRect, textFlags, text);
-        drawItemText(painter, textRect, textFlags, palette, enabled, text, QPalette::WindowText);
+        copy.setColor(QPalette::Active, QPalette::WindowText, textColor);
+        drawItemText(painter, textRect, textFlags, copy, enabled, text, QPalette::WindowText);
     }
 
     return true;
@@ -5719,7 +5800,7 @@ bool Style::drawHeaderSectionControl(const QStyleOption *option, QPainter *paint
     painter->setBrush(Qt::NoBrush);
     painter->setPen(Colors::alphaColor(palette.color(QPalette::WindowText), 0.2));
 
-    if (isCorner) {
+    /*if (isCorner) {
         if (reverseLayout) {
             painter->drawPoint(rect.bottomLeft());
         } else {
@@ -5733,22 +5814,22 @@ bool Style::drawHeaderSectionControl(const QStyleOption *option, QPainter *paint
         } else {
             painter->drawLine(rect.topRight(), rect.bottomRight());
         }
-    }
+    }*/
 
     // separators
     if (horizontal) {
         if (headerOption->section != 0 || isFirst) {
             if (reverseLayout) {
-                painter->drawLine(rect.topLeft(), rect.bottomLeft() - QPoint(0, 1));
+                painter->drawLine(rect.topLeft() + QPoint(0, 6), rect.bottomLeft() - QPoint(0, 6));
             } else {
-                painter->drawLine(rect.topRight(), rect.bottomRight() - QPoint(0, 1));
+                painter->drawLine(rect.topRight() + QPoint(0, 6), rect.bottomRight() - QPoint(0, 6));
             }
         }
     } else {
         if (reverseLayout) {
-            painter->drawLine(rect.bottomLeft() + QPoint(1, 0), rect.bottomRight());
+            painter->drawLine(rect.bottomLeft() + QPoint(6, 0), rect.bottomRight() - QPoint(6, 0));
         } else {
-            painter->drawLine(rect.bottomLeft(), rect.bottomRight() - QPoint(1, 0));
+            painter->drawLine(rect.bottomLeft() + QPoint(6, 0), rect.bottomRight() - QPoint(6, 0));
         }
     }
 
@@ -5808,7 +5889,7 @@ bool Style::drawHeaderEmptyAreaControl(const QStyleOption *option, QPainter *pai
     painter->drawRect(rect);
 
     // outline
-    painter->setBrush(Qt::NoBrush);
+    /*painter->setBrush(Qt::NoBrush);
     painter->setPen(Colors::alphaColor(palette.color(QPalette::ButtonText), 0.1));
 
     if (horizontal) {
@@ -5819,7 +5900,7 @@ bool Style::drawHeaderEmptyAreaControl(const QStyleOption *option, QPainter *pai
         } else {
             painter->drawLine(rect.topRight(), rect.bottomRight());
         }
-    }
+    }*/
 
     return true;
 }
@@ -5865,7 +5946,6 @@ bool Style::drawTabBarTabLabelControl(const QStyleOption *option, QPainter *pain
         }
 
         QFont font = painter->font();
-        font.setBold(true);
         painter->setFont(font);
         if (!(tab->state & State_Enabled)) {
             if (tab->state & State_Selected) {
@@ -6045,7 +6125,7 @@ bool Style::drawTabBarTabShapeControl(const QStyleOption *option, QPainter *pain
     styleOptions.setState(option->state);
 
     // underline
-    QColor underline(enabled && selected ? Colors::focusColor(StyleOptions(palette, _variant)) : selected || mouseOver ? option->palette.color(QPalette::Window).darker() : Qt::transparent);
+    QColor underline(enabled && selected ? Colors::focusColor(StyleOptions(palette, _variant)) : selected || mouseOver ? Qt::transparent : Qt::transparent);
 
     // outline
     QColor outline = QColor();
@@ -6622,6 +6702,11 @@ bool Style::drawComboBoxComplexControl(const QStyleOptionComplex *option, QPaint
 
         // arrow color
         QColor arrowColor = Colors::arrowOutlineColor(styleOptions);
+        if (sunken) {
+            arrowColor = palette.color(QPalette::HighlightedText);
+        } else if (!enabled) {
+            arrowColor = palette.color(QPalette::PlaceholderText);
+        }
 
         // arrow rect
         QRect arrowRect(subControlRect(CC_ComboBox, option, SC_ComboBoxArrow, widget));
@@ -7026,12 +7111,13 @@ bool Style::drawScrollBarComplexControl(const QStyleOptionComplex *option, QPain
         QRect grooveRect(subControlRect(CC_ScrollBar, option, SC_ScrollBarGroove, widget));
 
         const QPalette &palette(option->palette);
-        QColor color;
-        if (_dark) {
-            color = Colors::mix(palette.color(QPalette::Window), Colors::mix(palette.color(QPalette::Base), palette.color(QPalette::Window), 0.5), opacity);
-        } else {
-            color = Colors::mix(palette.color(QPalette::Window), Colors::mix(palette.color(QPalette::Window), palette.color(QPalette::Text), 0.2), opacity);
-        }
+        StyleOptions styleOptions(option->palette, _variant);
+        QColor color = Colors::scrollBarBackgroundColor(styleOptions);
+        //if (_dark) {
+        //    color = Colors::mix(palette.color(QPalette::Window), Colors::mix(palette.color(QPalette::Base), palette.color(QPalette::Window), 0.5), opacity);
+        //} else {
+        //    color = Colors::mix(palette.color(QPalette::Window), Colors::mix(palette.color(QPalette::Window), palette.color(QPalette::Text), 0.2), opacity);
+        //}
 
         const State &state(option->state);
         bool horizontal(state & State_Horizontal);
@@ -7243,9 +7329,10 @@ void Style::renderSpinBoxArrow(const SubControl &subControl, const QStyleOptionS
     styleOptions.setColorRole(QPalette::Text);
 
     QColor color = Colors::arrowOutlineColor(styleOptions);
-    if (atLimit) {
-        styleOptions.setColorGroup(QPalette::Disabled);
-        color = Colors::arrowOutlineColor(styleOptions);
+    if (atLimit || !enabled) {
+        //styleOptions.setColorGroup(QPalette::Disabled);
+        //color = Colors::arrowOutlineColor(styleOptions);
+        color = styleOptions.palette().color(QPalette::Disabled, QPalette::PlaceholderText);
     }
 
     // arrow orientation
@@ -7271,7 +7358,7 @@ void Style::renderSpinBoxArrow(const SubControl &subControl, const QStyleOptionS
         painter->setPen(Qt::NoPen);
         QColor background = Colors::mix(palette.base().color(), palette.text().color(), opacity * 0.1);
         background = Colors::mix(background, palette.dark().color(), pressedOpacity);
-        painter->setBrush(background);
+        if (enabled) painter->setBrush(background);
         if (hasFocus) {
             painter->drawRect(arrowRect.adjusted(1, 3, -1, -2));
         } else {

@@ -49,9 +49,9 @@ template<typename T> using ScopedPointer = QScopedPointer<T, QScopedPointerPodDe
 namespace Settings
 {
     const bool SingleClick {true};
-    const bool ShowIconsOnPushButtons {true};
+    const bool ShowIconsOnPushButtons {false};
     const int ToolButtonStyle {Qt::ToolButtonTextBesideIcon};
-    const bool ShowIconsInMenuItems {true};
+    const bool ShowIconsInMenuItems {false};
 }
 
 enum EnumMnemonicsMode { MN_NEVER, MN_AUTO, MN_ALWAYS };
@@ -68,7 +68,7 @@ namespace Config
     const bool OutlineCloseButton {false};
 
     // Style
-    const bool AnimationsEnabled {true};
+    const bool AnimationsEnabled {false};
     const int AnimationSteps {100};
     const int AnimationsDuration {180};
     const bool StackedWidgetTransitionsEnabled {false};
@@ -79,9 +79,9 @@ namespace Config
     const bool ScrollBarShowOnMouseOver {true};
     const int MnemonicsMode {MN_AUTO};
     const bool ToolBarDrawItemSeparator {0};
-    const bool ViewDrawFocusIndicator {true};
+    const bool ViewDrawFocusIndicator {false};
     const bool SliderDrawTickMarks {true};
-    const bool ViewDrawTreeBranchLines {true};
+    const bool ViewDrawTreeBranchLines {false};
     const bool ViewInvertSortIndicator {true};
     const bool TabBarDrawCenteredTabs {false};
     const bool TitleWidgetDrawFrame {true};
@@ -114,7 +114,7 @@ namespace PropertyNames
 enum Metrics {
     // frames
     Frame_FrameWidth = 4,
-    Frame_FrameRadius = 5,
+    Frame_FrameRadius = 2,
 
     // layout
     Layout_TopLevelMarginWidth = 10,
@@ -125,27 +125,31 @@ enum Metrics {
     LineEdit_FrameWidth = 3,
     LineEdit_MarginHeight = 2,
     LineEdit_MarginWidth = 8,
-    LineEdit_MinHeight = 36,
+    LineEdit_MinHeight = 32,
     LineEdit_MinWidth = 80,
 
     // menu items
     Menu_FrameWidth = 0,
+    Menu_VMargin = 4,
+    Menu_HMargin = 0,
     MenuItem_MarginWidth = 4,
     MenuItem_ItemSpacing = 6,
     MenuItem_AcceleratorSpace = 16,
+    MenuItem_SeparatorHeight = 8,
     MenuButton_IndicatorWidth = 20,
 
     // combobox
     ComboBox_FrameWidth = 4,
-    ComboBox_MarginHeight = 4,
+    ComboBox_MarginHeight = 2,
     ComboBox_MarginWidth = 8,
-    ComboBox_MinHeight = 36,
+    ComboBox_MinHeight = 32,
     ComboBox_MinWidth = 80,
+    ComboBox_ItemFrameWidth = 10,
 
     // spinbox
     SpinBox_FrameWidth = LineEdit_FrameWidth,
     SpinBox_ArrowButtonWidth = 20,
-    SpinBox_MinHeight = 36,
+    SpinBox_MinHeight = 32,
     SpinBox_MinWidth = 80,
     SpinBox_MarginHeight = 4,
     SpinBox_MarginWidth = 8,
@@ -154,7 +158,7 @@ enum Metrics {
     GroupBox_TitleMarginWidth = 4,
 
     // buttons
-    Button_MinHeight = 36,
+    Button_MinHeight = 32,
     Button_MinWidth = 80,
     Button_MarginHeight = 4,
     Button_MarginWidth = 8,
@@ -166,7 +170,7 @@ enum Metrics {
     ToolButton_InlineIndicatorWidth = 12,
 
     // checkboxes and radio buttons
-    CheckBox_Size = 22,
+    CheckBox_Size = 20,
     CheckBox_FocusMarginWidth = 3,
     CheckBox_ItemSpacing = 4,
 
@@ -208,7 +212,7 @@ enum Metrics {
     TabBar_TabMarginHeight = 9,
     TabBar_TabMarginWidth = 8,
     TabBar_TabMinWidth = 80,
-    TabBar_TabMinHeight = 36,
+    TabBar_TabMinHeight = 32,
     TabBar_TabItemSpacing = 8,
     TabBar_TabOverlap = 1,
     TabBar_BaseOverlap = 0,
@@ -235,7 +239,8 @@ enum Metrics {
     // tree view
     ItemView_ArrowSize = 10,
     ItemView_ItemMarginWidth = 3,
-    SidePanel_ItemMarginWidth = 4,
+    List_ItemMarginWidth = 4,
+    List_ItemMaxHeight = 32,
 
     // splitter
     Splitter_SplitterWidth = 1,
@@ -279,7 +284,7 @@ enum ArrowOrientation { ArrowNone, ArrowUp, ArrowDown, ArrowLeft, ArrowRight };
 //* button type
 enum ButtonType { ButtonClose, ButtonMaximize, ButtonMinimize, ButtonRestore };
 
-enum ColorVariant { Unknown, Adwaita, AdwaitaDark, AdwaitaHighcontrast, AdwaitaHighcontrastInverse };
+enum ColorVariant { Unknown, Adwaita, AdwaitaLight, AdwaitaDark };
 
 class StyleOptionsPrivate;
 

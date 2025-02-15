@@ -192,8 +192,8 @@ void Renderer::renderFrame(const StyleOptions &options)
     // set pen
     if (options.outlineColor().isValid()) {
         if (options.hasFocus()) {
-            options.painter()->setPen(QPen(options.outlineColor(), 2));
-            frameRect.adjust(0.5, 0.5, -0.5, -0.5);
+            options.painter()->setPen(QPen(options.outlineColor(), 1));
+            //frameRect.adjust(0.5, 0.5, -0.5, -0.5);
         } else {
             options.painter()->setPen(options.outlineColor());
         }
@@ -225,11 +225,11 @@ void Renderer::renderSquareFrame(const StyleOptions &options)
     options.painter()->save();
     options.painter()->setPen(options.color());
     options.painter()->drawRect(options.rect().adjusted(1, 1, -2, -2));
-    if (options.hasFocus()) {
+    /*if (options.hasFocus()) {
         options.color().setAlphaF(0.5);
         options.painter()->setPen(options.color());
         options.painter()->drawRect(options.rect().adjusted(0, 0, -1, -1));
-    }
+    }*/
     options.painter()->restore();
 }
 
@@ -248,8 +248,8 @@ void Renderer::renderFlatFrame(const StyleOptions &options)
     // set pen
     if (options.outlineColor().isValid()) {
         if (options.hasFocus()) {
-            options.painter()->setPen(QPen(options.outlineColor(), 2));
-            frameRect.adjust(0.5, 0.5, -0.5, -0.5);
+            options.painter()->setPen(QPen(options.outlineColor(), 1));
+            //frameRect.adjust(0.5, 0.5, -0.5, -0.5);
         } else {
             options.painter()->setPen(options.outlineColor());
         }
@@ -384,12 +384,12 @@ void Renderer::renderMenuFrame(const StyleOptions &options, bool roundCorners)
 
     options.painter()->setRenderHint(QPainter::Antialiasing, false);
     QRectF frameRect(options.rect());
-    if (options.outlineColor().isValid()) {
+    /*if (options.outlineColor().isValid()) {
         options.painter()->setPen(options.outlineColor());
         frameRect.adjust(0.5, 0.5, -0.5, -0.5);
-    } else {
+    } else {*/
         options.painter()->setPen(Qt::NoPen);
-    }
+    //}
 
     options.painter()->drawRect(frameRect);
     options.painter()->restore();
@@ -431,12 +431,12 @@ void Renderer::renderButtonFrame(const StyleOptions &options)
     // render
     options.painter()->drawRoundedRect(frameRect, radius, radius);
 
-    if (!options.sunken() && options.active() && options.color().isValid()) {
+    /*if (!options.sunken() && options.active() && options.color().isValid()) {
         options.painter()->setPen(options.color().lighter(140));
         options.painter()->drawLine(frameRect.topLeft() + QPoint(3, 1), frameRect.topRight() + QPoint(-3, 1));
         options.painter()->setPen(options.outlineColor().darker(114));
         options.painter()->drawLine(frameRect.bottomLeft() + QPointF(2.7, 0), frameRect.bottomRight() + QPointF(-2.7, 0));
-    }
+    }*/
 
     options.painter()->restore();
 }
@@ -749,7 +749,7 @@ void Renderer::renderCheckBox(const StyleOptions &options, const QColor &tickCol
         options.painter()->save();
         options.painter()->setRenderHint(QPainter::Antialiasing);
         options.painter()->setBrush(Qt::NoBrush);
-        QPen pen(tickColor, 3);
+        QPen pen(tickColor, 1.2);
         pen.setJoinStyle(Qt::MiterJoin);
         options.painter()->setPen(pen);
 
@@ -757,14 +757,14 @@ void Renderer::renderCheckBox(const StyleOptions &options, const QColor &tickCol
 
         QPainterPath path;
         path.moveTo(markerRect.right() - markerRect.width() / 4, markerRect.top() + markerRect.height() / 3);
-        path.lineTo(markerRect.center().x(), markerRect.bottom() - markerRect.height() / 3.0);
-        path.lineTo(markerRect.left() + markerRect.width() / 4, markerRect.center().y());
+        path.lineTo(markerRect.center().x() - 1, markerRect.bottom() - markerRect.height() / 4.0);
+        path.lineTo(markerRect.left() + markerRect.width() / 4, markerRect.center().y() + 1);
 
         options.painter()->setClipRect(markerRect);
         options.painter()->drawPath(path);
         options.painter()->restore();
     } else if (options.checkboxState() == CheckPartial) {
-        QPen pen(tickColor, 4);
+        QPen pen(tickColor, 1.2);
         pen.setCapStyle(Qt::RoundCap);
         options.painter()->setPen(pen);
 
@@ -775,7 +775,7 @@ void Renderer::renderCheckBox(const StyleOptions &options, const QColor &tickCol
         options.painter()->save();
         options.painter()->setRenderHint(QPainter::Antialiasing);
         options.painter()->setBrush(Qt::NoBrush);
-        QPen pen(tickColor, 3);
+        QPen pen(tickColor, 1.2);
         pen.setJoinStyle(Qt::MiterJoin);
         options.painter()->setPen(pen);
 
@@ -851,12 +851,12 @@ void Renderer::renderRadioButton(const StyleOptions &options, const QColor &tick
         options.painter()->setBrush(tickColor);
         options.painter()->setPen(Qt::NoPen);
 
-        QRectF markerRect(frameRect.adjusted(5, 5, -5, -5));
+        QRectF markerRect(frameRect.adjusted(5.5, 5.5, -5.5, -5.5));
         options.painter()->drawEllipse(markerRect);
     } else if (options.radioButtonState() == RadioAnimated) {
         options.painter()->setBrush(tickColor);
         options.painter()->setPen(Qt::NoPen);
-        QRectF markerRect(frameRect.adjusted(5, 5, -5, -5));
+        QRectF markerRect(frameRect.adjusted(5.5, 5.5, -5.5, -5.5));
         qreal remaining = markerRect.width() / 2.0 * (1.0 - animation);
         markerRect.adjust(remaining, remaining, -remaining, -remaining);
 
@@ -1136,7 +1136,7 @@ void Renderer::renderTabBarTab(const StyleOptions &options, const QColor &backgr
     qreal adjustment;
 
     // pen
-    if (options.outlineColor().isValid()) {
+    /*if (options.outlineColor().isValid()) {
         options.painter()->setPen(options.outlineColor());
         frameRect.adjust(1.0, 1.0, -1.0, -1.0);
         adjustment = 0;
@@ -1145,11 +1145,11 @@ void Renderer::renderTabBarTab(const StyleOptions &options, const QColor &backgr
 
         // render
         options.painter()->drawRect(frameRect);
-    } else if (!renderFrame) {
-        adjustment = 9;
-    }
+    } else if (!renderFrame) {*/
+        adjustment = 0;
+    //}
 
-    options.painter()->setPen(QPen(options.color(), 6));
+    options.painter()->setPen(QPen(options.color(), 4));
 
     switch (corners) {
     case CornersTop:
@@ -1214,16 +1214,16 @@ void Renderer::renderSign(const StyleOptions &options, bool orientation)
         return;
     }
 
-    QPen pen(options.color(), 2);
+    QPen pen(options.color(), 1);
     pen.setCapStyle(Qt::FlatCap);
 
     QRect r = options.rect().adjusted(1, 2, 0, 0);
 
     options.painter()->save();
     options.painter()->setPen(pen);
-    options.painter()->drawLine(r.center() - QPointF(5, 0), r.center() + QPointF(5, 0));
+    options.painter()->drawLine(r.center() - QPointF(5, 0), r.center() + QPointF(6, 0));
     if (orientation) {
-        options.painter()->drawLine(r.center() - QPointF(0, 5), r.center() + QPointF(0, 5));
+        options.painter()->drawLine(r.center() - QPointF(0, 5), r.center() + QPointF(0, 6));
     }
     options.painter()->restore();
 }

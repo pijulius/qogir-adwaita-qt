@@ -1,23 +1,18 @@
-adwaita-qt
-==========
-
-# Adwaita-qt project is unmaintained a no longer actively developed.
+qogir-adwaita-qt
+================
 
 A native style to bend Qt5/Qt6 applications to look like they belong into GNOME Shell.
 
-This style provides all four variants of GTK Adwaita theme:
+This style provides all 3 variants of GTK Qogir theme:
 
-* Adwaita
-![Widget Factory](data/screenshots/widgets-adwaita.png)
+* Qogir Adwaita
+![Widget Factory](data/screenshots/qogir-adwaita.png)
 
-* Adwaita-dark
-![Widget Factory](data/screenshots/widgets-adwaita-dark.png)
+* Qogir Adwaita-Light
+![Widget Factory](data/screenshots/qogir-adwaita-light.png)
 
-* HighContrast
-![Widget Factory](data/screenshots/widgets-highcontrast.png)
-
-* HighContrastInverse
-![Widget Factory](data/screenshots/widgets-highcontrastinverse.png)
+* Qogir Adwaita-Dark
+![Widget Factory](data/screenshots/qogir-adwaita-dark.png)
 
 ## How to compile
 

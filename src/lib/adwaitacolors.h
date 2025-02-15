@@ -62,6 +62,10 @@ public:
     /* Relevant options:
        * palette
      */
+    static QColor menuColor(const StyleOptions &options);
+    /* Relevant options:
+       * palette
+     */
     static QColor selectedMenuColor(const StyleOptions &options);
     /* Relevant options:
        * palette
@@ -213,6 +217,7 @@ public:
        * animation mode
        * color variant
      */
+    static QColor scrollBarBackgroundColor(const StyleOptions &options);
     static QColor scrollBarHandleColor(const StyleOptions &options);
     /* Relevant options:
        * palette

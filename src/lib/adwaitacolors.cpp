@@ -256,21 +256,20 @@ static QString checkRadioColorSuffixFromOptions(const StyleOptions &options)
 
 ColorsPrivate::ColorsPrivate()
 {
-    const QStringList variants = { QStringLiteral("light"), QStringLiteral("dark"),
-                                   QStringLiteral("hc"), QStringLiteral("hc-dark") };
+    const QStringList variants = {
+        QStringLiteral(""), QStringLiteral("-light"), QStringLiteral("-dark")
+    };
     for (const QString &variant : variants) {
         ColorVariant colorVariant;
-        if (variant == QStringLiteral("light")) {
-            colorVariant = Adwaita;
-        } else if (variant == QStringLiteral("dark")) {
+        if (variant == QStringLiteral("-dark")) {
             colorVariant = AdwaitaDark;
-        } else if (variant == QStringLiteral("hc")) {
-            colorVariant = AdwaitaHighcontrast;
+        } else if (variant == QStringLiteral("-light")) {
+            colorVariant = AdwaitaLight;
         } else {
-            colorVariant = AdwaitaHighcontrastInverse;
+            colorVariant = Adwaita;
         }
 
-        const QString filename = QStringLiteral(":/stylesheet/Adwaita-%1.css").arg(variant);
+        const QString filename = QStringLiteral(":/stylesheet/Adwaita%1.css").arg(variant);
         QFile file(filename);
 
         if (!file.open(QIODevice::ReadOnly)) {
@@ -455,7 +454,7 @@ QPalette Colors::palette(ColorVariant variant)
     palette.setColor(QPalette::All,      QPalette::Base,            colorsGlobal->adwaitaColor(ColorsPrivate::base_color, variant));
     palette.setColor(QPalette::All,      QPalette::AlternateBase,   colorsGlobal->adwaitaColor(ColorsPrivate::base_color, variant));
     palette.setColor(QPalette::All,      QPalette::ToolTipBase,     colorsGlobal->adwaitaColor(ColorsPrivate::osd_bg_color, variant));
-    palette.setColor(QPalette::All,      QPalette::ToolTipText,     colorsGlobal->adwaitaColor(ColorsPrivate::osd_text_color, variant));
+    palette.setColor(QPalette::All,      QPalette::ToolTipText,     colorsGlobal->adwaitaColor(ColorsPrivate::osd_fg_color, variant));
     palette.setColor(QPalette::All,      QPalette::PlaceholderText, colorsGlobal->adwaitaColor(ColorsPrivate::insensitive_fg_color, variant));
     palette.setColor(QPalette::All,      QPalette::Text,            colorsGlobal->adwaitaColor(ColorsPrivate::fg_color, variant));
     palette.setColor(QPalette::All,      QPalette::Button,          buttonColor);
@@ -501,7 +500,7 @@ QPalette Colors::palette(ColorVariant variant)
     palette.setColor(QPalette::Inactive, QPalette::Base,            colorsGlobal->adwaitaColor(ColorsPrivate::backdrop_base_color, variant));
     palette.setColor(QPalette::Inactive, QPalette::AlternateBase,   colorsGlobal->adwaitaColor(ColorsPrivate::backdrop_base_color, variant));
     palette.setColor(QPalette::Inactive, QPalette::ToolTipBase,     colorsGlobal->adwaitaColor(ColorsPrivate::osd_bg_color, variant));
-    palette.setColor(QPalette::Inactive, QPalette::ToolTipText,     colorsGlobal->adwaitaColor(ColorsPrivate::osd_text_color, variant));
+    palette.setColor(QPalette::Inactive, QPalette::ToolTipText,     colorsGlobal->adwaitaColor(ColorsPrivate::osd_fg_color, variant));
     palette.setColor(QPalette::Inactive, QPalette::PlaceholderText, colorsGlobal->adwaitaColor(ColorsPrivate::backdrop_fg_color, variant));
     palette.setColor(QPalette::Inactive, QPalette::Text,            colorsGlobal->adwaitaColor(ColorsPrivate::backdrop_fg_color, variant));
     palette.setColor(QPalette::Inactive, QPalette::Button,          disabledButtonColor);
@@ -538,6 +537,11 @@ QColor Colors::negativeText(const StyleOptions &options)
     Q_UNUSED(options)
 
     return Qt::red;
+}
+
+QColor Colors::menuColor(const StyleOptions &options)
+{
+    return colorsGlobal->adwaitaColor(ColorsPrivate::menu_color, options.colorVariant());
 }
 
 QColor Colors::selectedMenuColor(const StyleOptions &options)
@@ -588,7 +592,7 @@ QColor Colors::indicatorOutlineColor(const StyleOptions &options)
             return buttonOutlineColor(options);
         }
 
-        if (options.colorVariant() == ColorVariant::AdwaitaDark || options.colorVariant() == AdwaitaHighcontrastInverse) {
+        if (options.colorVariant() == ColorVariant::AdwaitaDark) {
             return darken(options.palette().color(QPalette::Window), 0.18);
         } else {
             return darken(options.palette().color(QPalette::Window), 0.24);
@@ -601,7 +605,8 @@ QColor Colors::indicatorOutlineColor(const StyleOptions &options)
 
 QColor Colors::frameOutlineColor(const StyleOptions &options)
 {
-    return inputOutlineColor(options);
+    return buttonOutlineColor(options);
+    //return inputOutlineColor(options);
 }
 
 QColor Colors::inputOutlineColor(const StyleOptions &options)
@@ -696,7 +701,8 @@ QLinearGradient Colors::buttonBackgroundGradient(const StyleOptions &options)
 
 QColor Colors::checkBoxIndicatorColor(const StyleOptions &options)
 {
-    if (options.inMenu()) {
+    return options.palette().color(QPalette::Highlight);
+    /*if (options.inMenu()) {
         return options.palette().color(QPalette::Text);
     } else {
         if (options.active()) {
@@ -704,7 +710,7 @@ QColor Colors::checkBoxIndicatorColor(const StyleOptions &options)
         } else {
             return Colors::transparentize(options.palette().color(QPalette::ToolTipText), 0.2);
         }
-    }
+    }*/
 }
 
 QColor Colors::headerTextColor(const StyleOptions &options)
@@ -713,12 +719,12 @@ QColor Colors::headerTextColor(const StyleOptions &options)
 
     if (options.state() & QStyle::State_Enabled) {
         if (options.state() & QStyle::State_Sunken) {
-            return Colors::alphaColor(col, 0.9);
+            return col;
         } else if (options.state() & QStyle::State_MouseOver) {
-            return Colors::alphaColor(col, 0.7);
+            return options.palette().color(QPalette::Highlight);
         }
     }
-    return Colors::alphaColor(col, 0.5);
+    return col;
 }
 
 QColor Colors::indicatorBackgroundColor(const StyleOptions &options)
@@ -761,15 +767,18 @@ QColor Colors::frameBackgroundColor(const StyleOptions &options)
     return Colors::mix(options.palette().color(options.colorGroup(), QPalette::Window), options.palette().color(options.colorGroup(), QPalette::Base), 0.3);
 }
 
+QColor Colors::scrollBarBackgroundColor(const StyleOptions &options)
+{
+    ColorVariant variant = options.colorVariant();
+    return colorsGlobal->adwaitaColor(ColorsPrivate::scrollbar_bg_color, variant);
+}
+
 QColor Colors::scrollBarHandleColor(const StyleOptions &options)
 {
-    QColor fgColor = options.palette().color(QPalette::Text);
-    QColor bgColor = options.palette().color(QPalette::Window);
-    QColor selectedBgColor = options.palette().color(QPalette::Highlight);
-
-    QColor color(Colors::mix(fgColor, bgColor, 0.4));
-    QColor hoverColor(Colors::mix(fgColor, bgColor, 0.2));
-    QColor activeColor(options.colorVariant() == ColorVariant::AdwaitaDark || options.colorVariant() == ColorVariant::AdwaitaHighcontrastInverse ? Colors::lighten(selectedBgColor, 0.1) : Colors::darken(selectedBgColor, 0.1));
+    ColorVariant variant = options.colorVariant();
+    QColor color(colorsGlobal->adwaitaColor(ColorsPrivate::scrollbar_slider_color, variant));
+    QColor hoverColor(colorsGlobal->adwaitaColor(ColorsPrivate::scrollbar_slider_hover_color, variant));
+    QColor activeColor(colorsGlobal->adwaitaColor(ColorsPrivate::scrollbar_slider_active_color, variant));
 
     // hover takes precedence over focus
     if (options.animationMode() == AnimationPressed) {
@@ -791,6 +800,7 @@ QColor Colors::scrollBarHandleColor(const StyleOptions &options)
 
 QColor Colors::separatorColor(const StyleOptions &options)
 {
+    return Qt::transparent;
     return buttonOutlineColor(options);
 }
 
