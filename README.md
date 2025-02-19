@@ -3,7 +3,7 @@ qogir-adwaita-qt
 
 A native style to bend Qt5/Qt6 applications to look like they belong into GNOME Shell.
 
-This style provides all 3 variants of GTK Qogir theme:
+This style provides all 3 variants of [GTK Qogir theme](https://github.com/vinceliuice/Qogir-theme) by @vinceliuice:
 
 * Qogir Adwaita
 ![Widget Factory](data/screenshots/qogir-adwaita.png)
